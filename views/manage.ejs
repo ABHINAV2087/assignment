@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Categories, Subcategories, and Products</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+  <div class="container mt-5">
+    <h1 class="text-center">Manage Categories, Subcategories, and Products</h1>
+
+    <!-- Category Add/Delete Section -->
+    <div class="mb-4">
+      <h4>Manage Categories</h4>
+      <div class="mb-3">
+        <input type="text" id="newCategory" class="form-control" placeholder="New Category Name" />
+        <button class="btn btn-primary mt-2" onclick="addCategory()">Add Category</button>
+      </div>
+
+      <div class="mb-3">
+        <label for="categoryDropdown" class="form-label">Select Category</label>
+        <select id="categoryDropdown" class="form-select" onchange="selectCategoryToDelete()">
+          <option value="">Select a Category</option>
+          <!-- Categories will be loaded here -->
+        </select>
+      </div>
+
+      <button id="deleteCategoryBtn" class="btn btn-danger" style="display:none;" onclick="deleteCategory()">Delete Category</button>
+      <button id="updateCategoryBtn" class="btn btn-warning" style="display:none;" onclick="updateCategory()">Update Category</button>
+    </div>
+
+    <!-- Subcategory Add/Delete Section -->
+    <div class="mb-4">
+      <h4>Manage Subcategories</h4>
+      <div class="mb-3">
+        <input type="text" id="newSubcategory" class="form-control" placeholder="New Subcategory Name" />
+        <button class="btn btn-primary mt-2" onclick="addSubcategory()">Add Subcategory</button>
+      </div>
+
+      <div class="mb-3">
+        <label for="subcategoryDropdown" class="form-label">Select Subcategory</label>
+        <select id="subcategoryDropdown" class="form-select" onchange="selectSubcategoryToDelete()">
+          <option value="">Select a Subcategory</option>
+          <!-- Subcategories will be loaded here -->
+        </select>
+      </div>
+
+      <button id="deleteSubcategoryBtn" class="btn btn-danger" style="display:none;" onclick="deleteSubcategory()">Delete Subcategory</button>
+      <button id="updateSubcategoryBtn" class="btn btn-warning" style="display:none;" onclick="updateSubcategory()">Update Subcategory</button>
+    </div>
+
+    <!-- Product Add/Delete Section -->
+    <div class="mb-4">
+      <h4>Manage Products</h4>
+      <div class="mb-3">
+        <label for="categoryProductDropdown" class="form-label">Select Category</label>
+        <select id="categoryProductDropdown" class="form-select" onchange="loadSubcategoriesForProduct()">
+          <option value="">Select a Category</option>
+          <!-- Categories will be loaded here -->
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="subcategoryProductDropdown" class="form-label">Select Subcategory</label>
+        <select id="subcategoryProductDropdown" class="form-select" onchange="loadProductsForSubcategory()">
+          <option value="">Select a Subcategory</option>
+          <!-- Subcategories will be loaded here -->
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <input type="text" id="productName" class="form-control" placeholder="Product Name" />
+        <input type="number" id="productPrice" class="form-control" placeholder="Product Price" />
+        <button class="btn btn-primary mt-2" onclick="addProduct()">Add Product</button>
+      </div>
+
+      <div class="mb-3">
+        <label for="productDropdown" class="form-label">Select Product</label>
+        <select id="productDropdown" class="form-select" onchange="selectProductToDelete()">
+          <option value="">Select a Product</option>
+          <!-- Products will be loaded here -->
+        </select>
+      </div>
+
+      <button id="deleteProductBtn" class="btn btn-danger" style="display:none;" onclick="deleteProduct()">Delete Product</button>
+      <button id="updateProductBtn" class="btn btn-warning" style="display:none;" onclick="updateProduct()">Update Product</button>
+    </div>
+
+  </div>
+
+  <script>
+    // Utility function to fetch data from the backend
+    async function fetchData(url) {
+      try {
+        const response = await axios.get(url);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('An error occurred');
+      }
+    }
+
+    // Add Category
+    async function addCategory() {
+      const name = document.getElementById('newCategory').value.trim();
+      if (!name) {
+        alert('Please enter a category name');
+        return;
+      }
+
+      try {
+        const category = await axios.post('/api/categories/add', { name });
+        alert('Category added successfully!');
+        loadCategories();
+      } catch (err) {
+        console.error('Failed to add category', err);
+        alert('Failed to add category');
+      }
+    }
+
+    // Delete Category
+    async function deleteCategory() {
+      const categoryId = document.getElementById('categoryDropdown').value;
+      if (!categoryId) {
+        alert('Please select a category to delete');
+        return;
+      }
+
+      try {
+        await axios.delete(`/api/categories/delete/${categoryId}`);
+        alert('Category deleted successfully!');
+        loadCategories();
+      } catch (err) {
+        alert('Failed to delete category');
+        console.error('Error:', err);
+      }
+    }
+
+    // Update Category
+    async function updateCategory() {
+      const categoryId = document.getElementById('categoryDropdown').value;
+      const newName = prompt('Enter new name for the category:');
+      if (!newName) return;
+
+      try {
+        await axios.put(`/api/categories/update/${categoryId}`, { name: newName });
+        alert('Category updated successfully!');
+        loadCategories();
+      } catch (err) {
+        alert('Failed to update category');
+        console.error('Error:', err);
+      }
+    }
+
+    // Load Categories
+    async function loadCategories() {
+      const categories = await fetchData('/api/categories');
+      const categoryDropdown = document.getElementById('categoryDropdown');
+      const categoryProductDropdown = document.getElementById('categoryProductDropdown');
+
+      categoryDropdown.innerHTML = '<option value="">Select a Category</option>';
+      categoryProductDropdown.innerHTML = '<option value="">Select a Category</option>';
+
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category._id;
+        option.textContent = category.name;
+        categoryDropdown.append(option);
+        categoryProductDropdown.append(option);
+      });
+    }
+
+    // Add Subcategory
+    async function addSubcategory() {
+      const name = document.getElementById('newSubcategory').value.trim();
+      const categoryId = document.getElementById('categoryDropdown').value;
+
+      if (!name || !categoryId) {
+        alert('Please enter a subcategory name and select a category');
+        return;
+      }
+
+      try {
+        await axios.post('/api/subcategories/add', { name, categoryId });
+        alert('Subcategory added successfully!');
+        loadSubcategories(categoryId);
+      } catch (err) {
+        alert('Failed to add subcategory');
+        console.error('Error:', err);
+      }
+    }
+
+    // Load Subcategories
+    async function loadSubcategories(categoryId) {
+      const subcategories = await fetchData(`/api/subcategories?categoryId=${categoryId}`);
+      const subcategoryDropdown = document.getElementById('subcategoryDropdown');
+      subcategoryDropdown.innerHTML = '<option value="">Select a Subcategory</option>';
+
+      subcategories.forEach(subcategory => {
+        const option = document.createElement('option');
+        option.value = subcategory._id;
+        option.textContent = subcategory.name;
+        subcategoryDropdown.append(option);
+      });
+    }
+
+    // Delete Subcategory
+    async function deleteSubcategory() {
+      const subcategoryId = document.getElementById('subcategoryDropdown').value;
+      if (!subcategoryId) {
+        alert('Please select a subcategory to delete');
+        return;
+      }
+
+      try {
+        await axios.delete(`/api/subcategories/delete/${subcategoryId}`);
+        alert('Subcategory deleted successfully!');
+        loadSubcategories(document.getElementById('categoryDropdown').value);
+      } catch (err) {
+        alert('Failed to delete subcategory');
+        console.error('Error:', err);
+      }
+    }
+
+    // Update Subcategory
+    async function updateSubcategory() {
+      const subcategoryId = document.getElementById('subcategoryDropdown').value;
+      const newName = prompt('Enter new name for the subcategory:');
+      if (!newName) return;
+
+      try {
+        await axios.put(`/api/subcategories/update/${subcategoryId}`, { name: newName });
+        alert('Subcategory updated successfully!');
+        loadSubcategories(document.getElementById('categoryDropdown').value);
+      } catch (err) {
+        alert('Failed to update subcategory');
+        console.error('Error:', err);
+      }
+    }
+
+    // Add Product
+    async function addProduct() {
+      const name = document.getElementById('productName').value.trim();
+      const price = document.getElementById('productPrice').value.trim();
+      const subcategoryId = document.getElementById('subcategoryProductDropdown').value;
+
+      if (!name || !price || !subcategoryId) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      try {
+        await axios.post('/api/products/add', { name, price, subcategoryId });
+        alert('Product added successfully!');
+        loadProducts(subcategoryId);
+      } catch (err) {
+        alert('Failed to add product');
+        console.error('Error:', err);
+      }
+    }
+
+    // Load Products for Subcategory
+    async function loadProducts(subcategoryId) {
+      const products = await fetchData(`/api/products?subcategoryId=${subcategoryId}`);
+      const productDropdown = document.getElementById('productDropdown');
+      productDropdown.innerHTML = '<option value="">Select a Product</option>';
+
+      products.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product._id;
+        option.textContent = product.name;
+        productDropdown.append(option);
+      });
+    }
+
+    // Delete Product
+    async function deleteProduct() {
+      const productId = document.getElementById('productDropdown').value;
+      if (!productId) {
+        alert('Please select a product to delete');
+        return;
+      }
+
+      try {
+        await axios.delete(`/api/products/delete/${productId}`);
+        alert('Product deleted successfully!');
+        loadProducts(document.getElementById('subcategoryProductDropdown').value);
+      } catch (err) {
+        alert('Failed to delete product');
+        console.error('Error:', err);
+      }
+    }
+
+    // Update Product
+    async function updateProduct() {
+      const productId = document.getElementById('productDropdown').value;
+      const newName = prompt('Enter new name for the product:');
+      const newPrice = prompt('Enter new price for the product:');
+      if (!newName || !newPrice) return;
+
+      try {
+        await axios.put(`/api/products/update/${productId}`, { name: newName, price: newPrice });
+        alert('Product updated successfully!');
+        loadProducts(document.getElementById('subcategoryProductDropdown').value);
+      } catch (err) {
+        alert('Failed to update product');
+        console.error('Error:', err);
+      }
+    }
+
+    // Load initial categories on page load
+    window.onload = loadCategories;
+  </script>
+</body>
+
+</html>

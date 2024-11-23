@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-commerce App</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="text-center">Product Selection</h1>
+
+    <!-- Category Dropdown -->
+    <div class="mb-3">
+      <label for="category" class="form-label">Category</label>
+      <select id="category" class="form-select">
+        <option value="">Select a category</option>
+        <% categories.forEach(category => { %>
+          <option value="<%= category._id %>"><%= category.name %></option>
+        <% }); %>
+      </select>
+    </div>
+
+    <!-- Subcategory Dropdown -->
+    <div class="mb-3">
+      <label for="subcategory" class="form-label">Subcategory</label>
+      <select id="subcategory" class="form-select" disabled>
+        <option value="">Select a subcategory</option>
+      </select>
+    </div>
+
+    <!-- Products Section -->
+    <div id="products" class="row">
+      <!-- Products will be displayed here -->
+    </div>
+
+    <!-- Edit Button -->
+    <div class="mt-4">
+      <a href="/manage" class="btn btn-primary">Edit Categories, Subcategories, Products</a>
+    </div>
+  </div>
+
+  <script>
+    const categoryDropdown = document.getElementById('category');
+    const subcategoryDropdown = document.getElementById('subcategory');
+    const productsContainer = document.getElementById('products');
+
+    // Fetch subcategories when category is selected
+    categoryDropdown.addEventListener('change', async () => {
+      const categoryId = categoryDropdown.value;
+      subcategoryDropdown.innerHTML = '<option value="">Select a subcategory</option>';
+      productsContainer.innerHTML = '';
+
+      if (!categoryId) {
+        subcategoryDropdown.disabled = true;
+        return;
+      }
+
+      const response = await axios.get(`/api/subcategories?categoryId=${categoryId}`);
+      const subcategories = response.data;
+
+      subcategories.forEach(subcategory => {
+        const option = document.createElement('option');
+        option.value = subcategory._id;
+        option.textContent = subcategory.name;
+        subcategoryDropdown.appendChild(option);
+      });
+
+      subcategoryDropdown.disabled = false;
+    });
+
+    // Fetch products when subcategory is selected
+    subcategoryDropdown.addEventListener('change', async () => {
+      const subcategoryId = subcategoryDropdown.value;
+      productsContainer.innerHTML = '';
+
+      if (!subcategoryId) return;
+
+      const response = await axios.get(`/api/products?subcategoryId=${subcategoryId}`);
+      const products = response.data;
+
+      products.forEach(product => {
+        const productCard = `
+          <div class="col-md-4 mb-3">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">${product.name}</h5>
+                <p class="card-text">${product.description || 'No description'}</p>
+                <p class="card-text"><strong>Price:</strong> $${product.price}</p>
+              </div>
+            </div>
+          </div>
+        `;
+        productsContainer.innerHTML += productCard;
+      });
+    });
+  </script>
+</body>
+</html>
